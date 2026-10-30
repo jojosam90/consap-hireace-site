@@ -1,0 +1,41 @@
+# Publish the site to GitHub Pages (https://hireace.today) on every push to main.
+# GitHub Pages has no URL rewrites, so each section URL (/main, /faq, ...) gets its own
+# copy of index.html, and unknown URLs fall back to the home page via 404.html.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build site
+        run: |
+          mkdir _site
+          cp -r assets index.html privacy-policy.html terms-of-service.html _site/
+          for s in main product agents mobile faq; do cp index.html "_site/$s.html"; done
+          cp index.html _site/404.html
+          echo "hireace.today" > _site/CNAME
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+      - id: deployment
+        uses: actions/deploy-pages@v4
