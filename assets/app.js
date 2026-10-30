@@ -616,7 +616,7 @@
     }
     dlg.querySelector("h3").textContent = t("soon.title");
     dlg.querySelector("p").textContent = t("soon.body");
-    var a = dlg.querySelector(".soon-wa"); a.textContent = t("soon.wa"); a.href = wa ? wa.href : "https://wa.me/6591237341";
+    var a = dlg.querySelector(".soon-wa"); a.textContent = t("soon.wa"); a.href = wa ? wa.href : "https://wa.me/6597431319";
     dlg.querySelector(".soon-close").textContent = t("soon.close");
     dlg.classList.add("open"); a.focus();
   }
