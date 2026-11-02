@@ -208,7 +208,8 @@
     // The guided tour: move the cursor onto the next task, show "Click to explore", click, play it.
     function moveTo(b) {
       var hr = hx.getBoundingClientRect(), br = b.getBoundingClientRect();
-      hxCursor.style.transform = "translate(" + (br.left - hr.left + br.width * 0.55) + "px," + (br.top - hr.top + br.height * 0.45) + "px)";
+      var k = hr.width / (hx.offsetWidth || hr.width) || 1; // the window is scaled up in the "view larger" overlay
+      hxCursor.style.transform = "translate(" + ((br.left - hr.left) / k + br.width / k * 0.55) + "px," + ((br.top - hr.top) / k + br.height / k * 0.45) + "px)";
     }
     function tour() {
       var next = (current + 1) % hxButtons.length;
@@ -595,7 +596,7 @@
   sync();
 })();
 
-/* Public site without the web app: app buttons open a "launching soon" dialog with a WhatsApp link */
+/* Public site without the web app: app buttons open a "free trial" dialog with a WhatsApp QR code */
 (function () {
   if (!document.documentElement.hasAttribute("data-app-soon")) return;
   var dict = window.FYNIX_I18N || {};
@@ -606,19 +607,23 @@
     if (!dlg) {
       dlg = document.createElement("div");
       dlg.className = "soon";
-      dlg.innerHTML = '<div class="soon-card" role="dialog" aria-modal="true" aria-labelledby="soon-t">' +
-        '<img src="assets/img/logo.png?v=2" alt="" width="44" height="44" /><h3 id="soon-t"></h3><p></p>' +
-        '<div class="soon-actions"><a class="btn btn-accent soon-wa" target="_blank" rel="noopener"></a>' +
-        '<button type="button" class="btn soon-close"></button></div></div>';
+      dlg.innerHTML = '<div class="soon-card" role="dialog" aria-modal="true" aria-labelledby="soon-t" tabindex="-1">' +
+        '<img src="assets/img/logo.png?v=2" alt="" width="44" height="44" /><h3 id="soon-t"></h3>' +
+        '<a class="soon-qr" target="_blank" rel="noopener"><img src="assets/img/whatsapp-qr.svg?v=1" alt="" width="260" height="260" /></a>' +
+        '<p class="soon-scan"></p><p class="soon-tap"></p>' +
+        '<div class="soon-actions"><button type="button" class="btn soon-close"></button></div></div>';
       document.body.appendChild(dlg);
       dlg.addEventListener("click", function (e) { if (e.target === dlg || e.target.closest(".soon-close")) close(); });
       document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
     }
     dlg.querySelector("h3").textContent = t("soon.title");
-    dlg.querySelector("p").textContent = t("soon.body");
-    var a = dlg.querySelector(".soon-wa"); a.textContent = t("soon.wa"); a.href = wa ? wa.href : "https://wa.me/6597431319";
-    dlg.querySelector(".soon-close").textContent = t("soon.close");
-    dlg.classList.add("open"); a.focus();
+    // The QR code opens WhatsApp with the same message as the floating WhatsApp button; tapping it works on phones
+    var qr = dlg.querySelector(".soon-qr"); qr.href = wa ? wa.href : "https://wa.me/6597431319";
+    qr.setAttribute("aria-label", t("soon.scan"));
+    dlg.querySelector(".soon-scan").textContent = t("soon.scan");
+    dlg.querySelector(".soon-tap").textContent = t("soon.tap");
+    var c = dlg.querySelector(".soon-close"); c.textContent = t("soon.close");
+    dlg.classList.add("open"); dlg.querySelector(".soon-card").focus();
   }
   function close() { if (dlg) dlg.classList.remove("open"); }
   document.addEventListener("click", function (e) {
@@ -626,4 +631,55 @@
     if (!a || (a.getAttribute("href") || "").indexOf("/task/app") !== 0) return;
     e.preventDefault(); e.stopPropagation(); open();
   }, true);
+})();
+
+
+/* Hero demo: "View larger" opens the live demo window full screen, scaled up (still clickable) */
+(function () {
+  var hx = document.getElementById("hx");
+  var home = hx && hx.parentNode;
+  if (!hx) return;
+  var dict = window.FYNIX_I18N || {};
+  function t(k) { return ((dict[document.documentElement.lang] || dict.en || {})[k]) || (dict.en || {})[k] || k; }
+  var W = 900, H = 560; // design size of the enlarged window, before scaling
+  var btn = document.createElement("button");
+  btn.type = "button"; btn.className = "hx-zoom-btn";
+  btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg><span></span>';
+  home.appendChild(btn);
+  var ov = document.createElement("div");
+  ov.className = "hx-zoom"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
+  ov.innerHTML = '<button type="button" class="hx-zoom-close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div class="hx-zoom-stage"></div>';
+  document.body.appendChild(ov);
+  var stage = ov.querySelector(".hx-zoom-stage");
+  function label() {
+    btn.querySelector("span").textContent = t("hx.zoom");
+    btn.setAttribute("aria-label", t("hx.zoom"));
+    ov.querySelector(".hx-zoom-close").setAttribute("aria-label", t("soon.close"));
+  }
+  label();
+  new MutationObserver(label).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+  function fit() {
+    if (window.innerWidth <= 700) { hx.style.transform = ""; stage.style.width = stage.style.height = ""; return; } // phones: plain full screen
+    var k = Math.min((window.innerWidth - 64) / W, (window.innerHeight - 96) / H, 1.8);
+    stage.style.width = W * k + "px"; stage.style.height = H * k + "px";
+    hx.style.transform = "scale(" + k + ")";
+  }
+  function open() {
+    home.style.minHeight = home.offsetHeight + "px";
+    stage.appendChild(hx);
+    hx.classList.add("hx-big");
+    ov.classList.add("open"); document.documentElement.classList.add("hx-zoomed");
+    fit(); ov.querySelector(".hx-zoom-close").focus();
+  }
+  function close() {
+    if (!ov.classList.contains("open")) return;
+    hx.classList.remove("hx-big"); hx.style.transform = "";
+    home.insertBefore(hx, btn); home.style.minHeight = "";
+    ov.classList.remove("open"); document.documentElement.classList.remove("hx-zoomed");
+    btn.focus();
+  }
+  btn.addEventListener("click", open);
+  ov.addEventListener("click", function (e) { if (e.target === ov || e.target.closest(".hx-zoom-close")) close(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+  window.addEventListener("resize", function () { if (ov.classList.contains("open")) fit(); });
 })();
