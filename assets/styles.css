@@ -889,3 +889,6 @@ html.hx-zoomed, html.hx-zoomed body { overflow: hidden; }
   .hx-zoom .hx.hx-big { position: static; width: 100%; height: 100%; border-radius: 18px 18px 0 0; }
   .hx-zoom .hx.hx-big .hx-body { height: calc(100vh - 64px); height: calc(100dvh - 64px); }
 }
+
+/* highlighted number in headings ("3 simple steps") */
+.num-hl { display: inline-block; font-size: 1.3em; font-weight: 800; line-height: 1; color: var(--violet); }
